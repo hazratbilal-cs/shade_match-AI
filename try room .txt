@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Clothing Color Changer</title>
+    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics and loading indicator */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eef2f6; /* Modern light blue-gray background */
+        }
+        /* Custom spinner style */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Style for the container to maintain aspect ratio and center the content */
+        .image-container {
+            aspect-ratio: 1 / 1;
+            max-width: 100%;
+            height: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        /* Style for clickable color swatches */
+        .color-swatch {
+            width: 36px; /* Slightly smaller to fit more */
+            height: 36px; /* Slightly smaller to fit more */
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10 border border-gray-100">
+        <h1 class="text-4xl font-extrabold text-gray-900 mb-2 text-center tracking-tight">
+            Virtual Outfit Color Studio
+        </h1>
+        <p class="text-center text-gray-500 mb-8">
+            Upload, select, and instantly visualize new clothing colors using AI.
+        </p>
+
+        <div id="app-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- CONTROL PANEL --><div class="lg:col-span-1 space-y-6">
+                <!-- 1. Image Upload --><div class="bg-white p-6 rounded-xl shadow-lg border border-blue-50/50">
+                    <label class="block text-xl font-semibold text-gray-800 mb-3">1. Upload Your Photo</label>
+                    <input type="file" id="image-upload" accept="image/*" class="w-full text-sm text-gray-600
+                        file:mr-4 file:py-3 file:px-4
+                        file:rounded-xl file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-100 file:text-blue-700
+                        hover:file:bg-blue-200 transition duration-150 cursor-pointer
+                    ">
+                </div>
+
+                <!-- 2. Custom Color Selection --><div class="bg-white p-6 rounded-xl shadow-lg border border-blue-50/50">
+                    <label class="block text-xl font-semibold text-gray-800 mb-3">2. Select Custom Color</label>
+                    <div class="flex items-center space-x-6">
+                        <input type="color" id="color-picker" value="#000080" class="w-20 h-20 rounded-2xl border-4 border-gray-200 shadow-xl cursor-pointer">
+                        <div class="flex flex-col">
+                            <span id="hex-display" class="text-2xl font-mono text-gray-800 font-bold">#000080</span>
+                            <p class="text-sm text-gray-500 mt-1">Direct HEX input</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Suggested Palette (New Section) --><div class="bg-white p-6 rounded-xl shadow-lg border border-blue-50/50">
+                    <label class="block text-xl font-semibold text-gray-800 mb-3">3. Top 20 Classic Colors</label>
+                    <div id="color-palette" class="flex flex-wrap gap-3 justify-center">
+                        <!-- Swatches are generated here by JavaScript --></div>
+                </div>
+
+                <!-- 4. Generate Button --><div class="p-6 pt-0">
+                    <button id="generate-button" class="w-full py-4 px-6 bg-blue-600 text-white font-extrabold text-lg rounded-xl shadow-xl hover:bg-blue-700 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.01]" disabled>
+                        Apply Color Change
+                    </button>
+                    <div id="status-message" class="mt-4 text-center text-sm text-gray-600 min-h-[1.25rem]"></div>
+                </div>
+            </div>
+
+            <!-- IMAGE PREVIEWS --><div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+                <!-- Original Image Preview --><div class="flex flex-col items-center">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-3">Original Photo</h2>
+                    <div id="original-image-display" class="image-container w-full rounded-xl shadow-2xl">
+                        <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                </div>
+
+                <!-- Generated Image Result --><div class="flex flex-col items-center">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-3">Recolored Result</h2>
+                    <div id="result-image-display" class="image-container w-full rounded-xl shadow-2xl relative">
+                        <!-- Initial placeholder --><svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0011.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+
+                        <!-- Loading overlay --><div id="loading-overlay" class="absolute inset-0 bg-white bg-opacity-90 flex flex-col justify-center items-center rounded-xl hidden">
+                            <div class="loader mb-3"></div>
+                            <p class="text-blue-600 font-medium">Applying AI magic...</p>
+                        </div>
+                    </div>
+                    <!-- Download Button (New) --><button id="download-button" class="mt-4 py-3 px-6 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed hidden" disabled>
+                        Download Result
+                        <svg class="inline-block ml-2 -mt-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l3-3m-3 3l-3-3m0 6h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error/Log Message Box --><div id="error-box" class="mt-8 p-4 bg-red-100 text-red-700 border-l-4 border-red-500 rounded-xl hidden">
+            <h3 class="font-bold">Generation Error:</h3>
+            <p id="error-message"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Global variables for Firebase environment (MANDATORY, even if not used)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+        console.log(`App ID: ${appId}`);
+
+        // --- DOM Elements ---
+        const imageUpload = document.getElementById('image-upload');
+        const colorPicker = document.getElementById('color-picker');
+        const hexDisplay = document.getElementById('hex-display');
+        const generateButton = document.getElementById('generate-button');
+        const originalImageDisplay = document.getElementById('original-image-display');
+        const resultImageDisplay = document.getElementById('result-image-display');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const statusMessage = document.getElementById('status-message');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+        const colorPalette = document.getElementById('color-palette');
+        const downloadButton = document.getElementById('download-button'); // New
+
+        let originalImageData = { data: null, mimeType: null }; 
+        let currentResultImageUrl = null; // New: To store the URL of the generated image
+
+        const MODEL_NAME = 'gemini-2.5-flash-image-preview'; // Model for image editing
+
+        // Updated: Top 20 Versatile Men's Clothing Colors
+        const SUGGESTED_COLORS = [
+            '#000080', // 1. Navy Blue
+            '#36454F', // 2. Charcoal Gray
+            '#000000', // 3. Black
+            '#FFFFFF', // 4. White
+            '#D3D3D3', // 5. Light Gray
+            '#C3B091', // 6. Khaki/Tan
+            '#800000', // 7. Burgundy/Maroon
+            '#228B22', // 8. Forest Green
+            '#6B8E23', // 9. Olive Green
+            '#87CEEB', // 10. Sky Blue
+            '#4169E1', // 11. Royal Blue
+            '#E3DAC9', // 12. Stone/Beige
+            '#FFFDD0', // 13. Cream/Off-White
+            '#5C4033', // 14. Dark Brown
+            '#FFDB58', // 15. Mustard Yellow (Accent)
+            '#008080', // 16. Teal
+            '#C9A9A6', // 17. Dusty Rose
+            '#E6E6FA', // 18. Lavender
+            '#7DF9FF', // 19. Electric Blue (Bold)
+            '#DC143C', // 20. Crimson Red
+        ];
+
+        // --- Utility Functions ---
+
+        /**
+         * Generic fetch utility with exponential backoff for robustness.
+         */
+        async function fetchWithRetries(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                } catch (error) {
+                    console.warn(`Attempt ${i + 1} failed: ${error.message}`);
+                    if (i === retries - 1) {
+                        throw error;
+                    }
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+
+        // --- Main Logic ---
+
+        /**
+         * Calls the Gemini API to perform the image recoloring.
+         */
+        async function generateColoredImage(base64Image, mimeType, colorHex) {
+            hideError();
+            loadingOverlay.classList.remove('hidden');
+            generateButton.disabled = true;
+            downloadButton.classList.add('hidden'); // Hide download button during generation
+            statusMessage.textContent = `Applying ${colorHex}... This may take a moment.`;
+
+            const apiKey = ""; // Replace with your actual API Key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+
+            // The detailed prompt ensures the AI preserves everything except the clothes' color.
+            const prompt = `Keep the person's face, hair, skin tone, posture, facial expression, and background exactly the same. Do not change anything about the body, face, or surroundings. Only change the color of the clothing item (e.g., shirt, dress, jacket) to ${colorHex} while fully preserving the original style, texture, folds, lighting, and shadows. The photo must remain high-resolution, natural, and photorealistic, with the clothing seamlessly updated. Maintain the exact same pose and details as the original.`;
+
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: prompt },
+                            {
+                                inlineData: {
+                                    mimeType: mimeType,
+                                    data: base64Image
+                                }
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    responseModalities: ['TEXT', 'IMAGE']
+                },
+            };
+
+            try {
+                const response = await fetchWithRetries(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const candidate = result?.candidates?.[0];
+
+                if (candidate) {
+                    const imagePart = candidate.content?.parts?.find(p => p.inlineData && p.inlineData.mimeType.startsWith('image/'));
+
+                    if (imagePart) {
+                        const base64Data = imagePart.inlineData.data;
+                        const imageUrl = `data:image/png;base64,${base64Data}`;
+                        
+                        currentResultImageUrl = imageUrl; // Store the generated image URL
+                        downloadButton.classList.remove('hidden'); // Show download button
+                        downloadButton.disabled = false; // Enable download button
+
+                        resultImageDisplay.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-contain rounded-xl" alt="Recolored Dress">`;
+                        statusMessage.textContent = `Color ${colorHex} applied successfully!`;
+                    } else {
+                        throw new Error('AI response did not contain an image. (Check prompt complexity or file size.)');
+                    }
+                } else {
+                    const errorDetails = result.error?.message || 'An unknown API error occurred.';
+                    throw new Error(`API failed: ${errorDetails}`);
+                }
+
+            } catch (error) {
+                console.error("Generation Error:", error);
+                showError(`Failed to apply color: ${error.message}.`);
+                resultImageDisplay.innerHTML = `<svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0011.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>`;
+                downloadButton.classList.add('hidden'); // Hide download button on error
+                downloadButton.disabled = true;
+                currentResultImageUrl = null;
+            } finally {
+                loadingOverlay.classList.add('hidden');
+                generateButton.disabled = !originalImageData.data;
+            }
+        }
+
+        // --- UI Handlers ---
+
+        function showError(message) {
+            errorBox.classList.remove('hidden');
+            errorMessage.textContent = message;
+            statusMessage.textContent = 'Generation failed.';
+        }
+
+        function hideError() {
+            errorBox.classList.add('hidden');
+            errorMessage.textContent = '';
+        }
+
+        // Initialize the color palette
+        function initializeColorPalette() {
+            colorPalette.innerHTML = ''; // Clear existing content
+            SUGGESTED_COLORS.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = color;
+                swatch.setAttribute('data-color', color);
+                
+                // Set border color for white swatch for visibility
+                if (color === '#FFFFFF') {
+                    swatch.style.borderColor = '#ccc';
+                }
+
+                swatch.addEventListener('click', (e) => {
+                    const selectedColor = e.target.getAttribute('data-color');
+                    colorPicker.value = selectedColor;
+                    hexDisplay.textContent = selectedColor;
+                    
+                    // Automatically trigger generation upon palette click if an image is loaded
+                    if (originalImageData.data) {
+                        generateColoredImage(originalImageData.data, originalImageData.mimeType, selectedColor);
+                    } else {
+                        statusMessage.textContent = 'Image not uploaded. Upload your photo first.';
+                    }
+                });
+
+                colorPalette.appendChild(swatch);
+            });
+        }
+
+        // Handle image file selection
+        imageUpload.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            hideError();
+            downloadButton.classList.add('hidden'); // Hide download button on new upload
+            downloadButton.disabled = true;
+            currentResultImageUrl = null; // Clear previous result URL
+
+            try {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageUrl = e.target.result;
+                    originalImageDisplay.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-contain rounded-xl" alt="Original Upload">`;
+                    
+                    const parts = imageUrl.split(',');
+                    const base64Data = parts.pop();
+                    const mimeTypeMatch = parts[0].match(/^data:(.+?);base64/);
+                    const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : file.type;
+
+                    originalImageData = { data: base64Data, mimeType: mimeType };
+                    
+                    generateButton.disabled = false;
+                    statusMessage.textContent = 'Photo uploaded. Select a color or palette swatch and click "Apply".';
+                };
+                reader.readAsDataURL(file);
+
+                // Clear result area
+                resultImageDisplay.innerHTML = `<svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0011.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>`;
+
+            } catch (error) {
+                showError('Could not process the uploaded file.');
+                originalImageData = { data: null, mimeType: null };
+                generateButton.disabled = true;
+            }
+        });
+
+        // Handle custom color picker change
+        colorPicker.addEventListener('input', (event) => {
+            const hex = event.target.value;
+            hexDisplay.textContent = hex;
+        });
+
+        // Handle the generation button click
+        generateButton.addEventListener('click', () => {
+            if (!originalImageData.data) {
+                showError('Please upload an image first.');
+                return;
+            }
+            const colorHex = colorPicker.value;
+            generateColoredImage(originalImageData.data, originalImageData.mimeType, colorHex);
+        });
+
+        // Handle download button click (New)
+        downloadButton.addEventListener('click', () => {
+            if (currentResultImageUrl) {
+                const a = document.createElement('a');
+                a.href = currentResultImageUrl;
+                a.download = 'recolored_outfit.png'; // Suggested filename
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else {
+                showError('No recolored image available to download.');
+            }
+        });
+
+        // Initialize palette on load
+        initializeColorPalette();
+        
+    </script>
+</body>
+</html>
